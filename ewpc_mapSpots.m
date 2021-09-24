@@ -22,7 +22,7 @@ function [ spotMaps ] = ewpc_mapSpots( data4d,spotList,tol,valid)
 %                 'spotangle' -- map of the spot vector angle in degrees.
 %
 %This function is part of the PC-STEM Package by Elliot Padgett in the 
-%Muller Group at Cornell University.  Last updated June 26, 2019.
+%Muller Group at Cornell University.  Last updated by Hari on Sept 19, 2021.
 
 %initialize data info
 [N_k1,N_k2,N_x1,N_x2]=size(data4d);
@@ -95,7 +95,7 @@ t=toc;
 fprintf('\nDone. Total time: %.1f s. Time per peak fit: %.3f s.\n',t,t/totalspots)
 
 % Add vector-form maps to spotMaps struct
-spotMaps = calculateSpotMapVectors( spotMaps);
+spotMaps = calculateSpotMapVectors( spotMaps, N_k1, N_k2);
 
 end
 
@@ -125,18 +125,30 @@ w=maskr.*maskc;
 end
 
 %%
-function [ spotMaps_updated ] = calculateSpotMapVectors( spotMaps)
+function [ spotMaps_updated ] = calculateSpotMapVectors( spotMaps, N_k1, N_k2)
 %calculateSpotMapVectors Calculates vector components, length, and angle 
-%   assuming detector has 124 pixels, i.e. zero=(63,63). These are added to
-%   the spotMaps struct
+%  These are added to the spotMaps struct
+mid_x = 0;
+mid_y = 0;
+if(mod(N_k1,2)==0)
+    mid_x = round(N_k1/2) + 1;
+else
+    mid_x = ceil(N_k1/2);
+end
+
+if(mod(N_k2,2)==0)
+    mid_y = round(N_k2/2) + 1;
+else
+    mid_y = ceil(N_k2/2);
+end
 
 numSpots = length(spotMaps);
 spotMaps_updated=spotMaps;
 for i=1:numSpots
     x1map=spotMaps(i).Q1map;
-    x1map=x1map-63; x1map(x1map>62) = x1map(x1map>62)- 124;
+    x1map=x1map-mid_x; x1map(x1map>(mid_x-1)) = x1map(x1map>(mid_x-1))- N_k1;
     x2map=spotMaps(i).Q2map;
-    x2map=x2map-63; x2map(x2map>62) = x2map(x2map>62)- 124;
+    x2map=x2map-mid_y; x2map(x2map>(mid_y-1)) = x2map(x2map>(mid_y-1))- N_k2;
     
     spotlength=sqrt(x1map.^2+x2map.^2);
     spotangle=atan2d(x1map,x2map);
