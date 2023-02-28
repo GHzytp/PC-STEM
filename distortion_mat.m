@@ -31,7 +31,7 @@ D = struct('m11', nan(Nx1,Nx2), 'm22', nan(Nx1,Nx2),...
                           'm12', nan(Nx1,Nx2), 'm21', nan(Nx1,Nx2));
 
 %prepare reference point list
-referencePoints = [0,0];
+referencePoints = [];
 for s = 1:length(spotReferences)
     referencePoints = [referencePoints; spotReferences(s).point];
 end
@@ -40,7 +40,7 @@ end
 for j=1:Nx1
     for k=1:Nx2
         
-        dataPoints = [0,0];
+        dataPoints = [];
         for s = 1:length(spotReferences)
             %center spot
             q1c = spotMaps(s).VectorX1(j,k);
@@ -59,12 +59,9 @@ for j=1:Nx1
             D.m22(j,k) = nan;
 
         else
-            %Calculate transform
-            %tform = fitgeotrans(movingPoints,fixedPoints,'affine');
-            % we want to know what it would be like if we mapped the
-            % reference lattice onto our actual data
-            tform = fitgeotrans(referencePoints,dataPoints,'affine');
-            M=tform.T; M = M(1:2,1:2);
+            %Calculate distorion/deformation matrix
+            
+            M = dataPoints /(referencePoints);
             D.m11(j,k) = M(1,1);
             D.m12(j,k) = M(1,2);
             D.m21(j,k) = M(2,1);
