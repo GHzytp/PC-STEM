@@ -17,9 +17,9 @@ function [ StrainComponents,StrainTensors] = calculateStrainMap( spotMaps, spotR
 %       latticeCoords -- choose coordinate system to reference
 %                        strain to.  Value 0 selects "image 
 %                        coordinates", with the 1,2 directions 
-%                        corresponding to image x1,x2.  Value 1 selects
-%                        "lattice coordinates", where the 1,2 directions
-%                        refer to the reference directions.
+%                        corresponding to to present vector directions.
+%                        Value 1 selects "lattice coordinates", where the 
+%                        1,2 directions refer to the reference directions.
 %   outputs:
 %       StrainComponents -- struct containing 2D arrays (images) of the
 %               strain tensor components, rotation, and strain ellipse 
@@ -40,7 +40,8 @@ function [ StrainComponents,StrainTensors] = calculateStrainMap( spotMaps, spotR
 %                        'evals' and eigenvectors 'evecs' of the strain tensor
 %
 %This function is part of the PC-STEM Package by Elliot Padgett in the 
-%Muller Group at Cornell University.  Last updated June 26, 2019.
+%Muller Group at Cornell University.  Last updated by Hari on February 28,
+%2023.
 
 %initialize data info
 [Nx1,Nx2] = size(spotMaps(1).Q1map);
@@ -54,7 +55,7 @@ StrainTensors = struct('E',cell(Nx1,Nx2),'R',cell(Nx1,Nx2),...
     'evals',cell(Nx1,Nx2),'evecs',cell(Nx1,Nx2));
 
 %prepare reference point list
-referencePoints = [0,0];
+referencePoints = [];
 for s = 1:length(spotReferences)
     referencePoints = [referencePoints; spotReferences(s).point];
 end
@@ -63,7 +64,7 @@ end
 for j=1:Nx1
     for k=1:Nx2
         
-        dataPoints = [0,0];
+        dataPoints = [];
         for s = 1:length(spotReferences)
             %center spot
             q1c = spotMaps(s).VectorX1(j,k);
@@ -82,17 +83,14 @@ for j=1:Nx1
             StrainTensors(j,k).evals = nan(2,1);
 
         else
-            %Calculate transform
-            %tform = fitgeotrans(movingPoints,fixedPoints,'affine');
-            % we want to know what it would be like if we mapped the
-            % reference lattice onto our actual data
-            tform = fitgeotrans(referencePoints,dataPoints,'affine');
-            D=tform.T; D = D(1:2,1:2);
+            %Calculate distorion/deformation matrix
             
-            [R,U,V] = poldecomp(D); % D = R*U = V*R.  R is a rotation.
-            %V is the strain in "world coordinates" and is independent of
-            %the reference orientation. U is the strain in "lattice
-            %coordinates", corresponding to the reference directions
+            D = dataPoints /(referencePoints);
+            
+            [R,U,V] = poldecomp(D); % D = R*U = V*R.  R is a rotation matrix.
+            % U is the strain matrix with the reference matrix vectors as
+            % the basis. V will have the vectors at the current probe
+            % position (dataPoints matrix vectors) as the basis.
             
             if latticeCoords
                 E = U-eye(2); % strain tensor
@@ -142,7 +140,7 @@ function [R, U, V] = poldecomp(F)
 % formalism of tensors. C is the right Cauchy-Green deformation tensor,
 % F is the deformation tensor, lambda is the stretch.
 %
-%Copyright (c) 2014, Zolt·n Cs·ti
+%Copyright (c) 2014, Zolt√°n Cs√°ti
 
 % Check input
 [m n] = size(F);
