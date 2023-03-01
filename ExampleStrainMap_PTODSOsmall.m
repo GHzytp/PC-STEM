@@ -7,6 +7,7 @@
 %% Load Data 
 
 fnm = '../PAD_Matlab_ExampleData/PTODSO_small_128x130x64x64_float_x64_y64.raw';
+
 filetag = 'PTODSO_small'; %name stub for automatically generated files.
 
 [data4d] = single(readSTEM4D(fnm)); %data ordered [k1,k2,x1,y2]
@@ -50,7 +51,7 @@ valid = ones(size(dfim_roi)); %Identify what area of ROI should be mapped
 
 %% Make maps of peak positions
 
-tol = 1e-2; %Sets tolerance for peak finding.  A smaller value may improve 
+tol = 1e-4; %Sets tolerance for peak finding.  A smaller value may improve 
             %precision but will take longer.
 [ spotMaps ] = ewpc_mapSpots( data4d_roi,spotList,tol );  
 %spotMaps contains the results of the spot fitting.  For each spot, it
@@ -77,14 +78,16 @@ ref2 = cubic_a*[0,1]; %010 lattice vector
 %in spotMaps
 spotReferences = struct('id',{'100','010'},'point',{ref1,ref2});
 
-%Identify strain coordinate system.  If true, the strain directions match
-%follow the given reference vectors.  If false, the strain directions match
-%the directions of the diffraction pattern.
+%Identify order of polar decomposition.  If true, the strain directions match
+%the given reference vectors.  If false, the strain directions match
+%the directions of the measured EWPC peak positions for the current pixel.
 latticeCoords = true;
+
+image_basis = false; % Set to true if you want the basis vectors of strain map oriented along the image x,y coordinates
 
 %Calculate strain tensor
 [ StrainComponents,StrainTensors ] = ...
-           calculateStrainMap( spotMaps, spotReferences, latticeCoords );
+           calculateStrainMap( spotMaps, spotReferences, latticeCoords, image_basis );
 
 %Plot strain map results
 plotStrainMap(StrainComponents);
@@ -102,13 +105,16 @@ refWin_x2 = 1:size(dfim_roi,2);
 [ spotReferences ] = ...
     makeRelativeSpotReferences( spotMaps, refWin_x1,refWin_x2 );
 
-%Identify strain coordinate system.  
+%Identify order of polar decomposition.  If true, the strain directions match
+%the given reference vectors.  If false, the strain directions match
+%the directions of the measured EWPC peak positions for the current pixel.
 latticeCoords = true;
+
+image_basis = false; % Set to true if you want the basis vectors of strain map oriented along the image x,y coordinates
 
 %Calculate strain tensor
 [ StrainComponents,StrainTensors ] = ...
-         calculateStrainMap( spotMaps, spotReferences, latticeCoords );
-
+           calculateStrainMap( spotMaps, spotReferences, latticeCoords, image_basis );
 %Plot strain map results
 plotStrainMap(StrainComponents);
 
