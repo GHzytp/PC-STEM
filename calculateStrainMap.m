@@ -1,4 +1,4 @@
-function [ StrainComponents,StrainTensors] = calculateStrainMap( spotMaps, spotReferences, latticeCoords )
+function [ StrainComponents,StrainTensors] = calculateStrainMap( spotMaps, spotReferences, latticeCoords, image_basis )
 %StrainTensorMap Makes maps of strain tensor components from peak maps
 %   inputs:
 %       spotMaps -- struct array containing maps of maximum spot index Q1,Q2
@@ -40,8 +40,14 @@ function [ StrainComponents,StrainTensors] = calculateStrainMap( spotMaps, spotR
 %                        'evals' and eigenvectors 'evecs' of the strain tensor
 %
 %This function is part of the PC-STEM Package by Elliot Padgett in the 
-%Muller Group at Cornell University.  Last updated by Hari on February 28,
-%2023.
+%Muller Group at Cornell University.  Last updated June 26, 2019.
+
+if nargin<3
+    latticeCoords = true;
+    image_basis = false;
+elseif nargin<4
+    image_basis = false;
+end
 
 %initialize data info
 [Nx1,Nx2] = size(spotMaps(1).Q1map);
@@ -55,7 +61,7 @@ StrainTensors = struct('E',cell(Nx1,Nx2),'R',cell(Nx1,Nx2),...
     'evals',cell(Nx1,Nx2),'evecs',cell(Nx1,Nx2));
 
 %prepare reference point list
-referencePoints = [];
+referencePoints = [0,0];
 for s = 1:length(spotReferences)
     referencePoints = [referencePoints; spotReferences(s).point];
 end
@@ -64,7 +70,7 @@ end
 for j=1:Nx1
     for k=1:Nx2
         
-        dataPoints = [];
+        dataPoints = [0,0];
         for s = 1:length(spotReferences)
             %center spot
             q1c = spotMaps(s).VectorX1(j,k);
@@ -85,8 +91,15 @@ for j=1:Nx1
         else
             %Calculate distorion/deformation matrix
             
-            D = dataPoints /(referencePoints);
-            
+            if image_basis
+                tform = fitgeotrans(referencePoints,dataPoints,'affine');
+                D=tform.T; D = D(1:2,1:2);
+            else
+                dataPoints = dataPoints(2:3,1:2);
+                referencePoints_trim = referencePoints(2:3,1:2);
+                D = dataPoints /(referencePoints_trim);
+            end
+
             [R,U,V] = poldecomp(D); % D = R*U = V*R.  R is a rotation matrix.
             % U is the strain matrix with the reference matrix vectors as
             % the basis. V will have the vectors at the current probe
